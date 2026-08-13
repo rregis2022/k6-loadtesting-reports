@@ -1,0 +1,9 @@
+{
+  "reports": [
+    "test.json",
+    "k6_url-summary.json",
+    "k6_url-summary-run-19-20260813-224627-142295608.json",
+    "k6_url-summary-run-18-20260812-134232-473398897.json"
+  ],
+  "totalReports": 4
+}
