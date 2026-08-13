@@ -1,38 +1,207 @@
 body {
+
 font-family: Arial, sans-serif;
+
 margin: 0;
+
 padding: 30px;
+
 background: #f5f5f5;
+
+color: #222;
+
 }
+
 
 header {
+
 margin-bottom: 30px;
+
 }
 
-h1 {
+
+header h1 {
+
 margin-bottom: 5px;
+
 }
+
 
 section {
-background: white;
-padding: 20px;
+
+background: #ffffff;
+
+padding: 25px;
+
 margin-bottom: 20px;
+
 border-radius: 8px;
+
 }
 
-table {
-width: 100%;
-border-collapse: collapse;
+
+.dashboard-introduction {
+
+border-left: 5px solid #555;
+
+}
+
+
+select {
+
+padding: 10px;
+
+min-width: 400px;
+
+font-size: 14px;
+
+}
+
+
+.metrics-grid {
+
+display: grid;
+
+grid-template-columns:
+repeat(auto-fit, minmax(200px, 1fr));
+
+gap: 15px;
+
 margin-top: 20px;
+
+margin-bottom: 30px;
+
 }
 
-th,
-td {
-padding: 12px;
-border-bottom: 1px solid #ddd;
-text-align: left;
+
+.metric-card {
+
+border: 1px solid #ddd;
+
+border-radius: 8px;
+
+padding: 20px;
+
+background: #fafafa;
+
 }
 
-th {
+
+.metric-card h3 {
+
+margin-top: 0;
+
+margin-bottom: 10px;
+
+font-size: 14px;
+
+font-weight: normal;
+
+}
+
+
+.metric-value {
+
+font-size: 25px;
+
 font-weight: bold;
+
+}
+
+
+.metric-unit {
+
+font-size: 13px;
+
+font-weight: normal;
+
+}
+
+
+.report-header {
+
+margin-bottom: 25px;
+
+}
+
+
+.report-header h2 {
+
+margin-bottom: 8px;
+
+}
+
+
+.details-table {
+
+width: 100%;
+
+border-collapse: collapse;
+
+margin-top: 15px;
+
+}
+
+
+.details-table td {
+
+padding: 12px;
+
+border-bottom: 1px solid #ddd;
+
+}
+
+
+.details-table td:first-child {
+
+font-weight: bold;
+
+}
+
+
+#status {
+
+font-size: 14px;
+
+}
+
+
+.error-message {
+
+padding: 15px;
+
+border: 1px solid #ddd;
+
+}
+
+
+@media (max-width: 600px) {
+
+body {
+
+padding: 15px;
+
+}
+
+
+section {
+
+padding: 18px;
+
+}
+
+
+select {
+
+min-width: 100%;
+
+}
+
+
+.metrics-grid {
+
+grid-template-columns: 1fr;
+
+}
+
 }
