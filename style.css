@@ -1,743 +1,299 @@
-const REPORT_BASE_URL = "./reports/";
+* {
+    box-sizing: border-box;
+}
 
+body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f5f7fa;
+    color: #1f2937;
+}
 
-/*
- * Load report index
- */
-async function loadReportIndex() {
-
-    const response = await fetch(
-        `${REPORT_BASE_URL}index.json?cache=${Date.now()}`,
-        {
-            cache: "no-store"
-        }
-    );
-
-    if (!response.ok) {
-        throw new Error(
-            `Unable to load reports/index.json (${response.status})`
-        );
-    }
-
-    return await response.json();
+.container {
+    width: 95%;
+    max-width: 1400px;
+    margin: 0 auto;
 }
 
 
-/*
- * Load an individual k6 JSON report
- */
-async function loadReport(filename) {
+/* ================================
+   Header
+================================ */
 
-    const response = await fetch(
-        `${REPORT_BASE_URL}${encodeURIComponent(filename)}?cache=${Date.now()}`,
-        {
-            cache: "no-store"
-        }
-    );
+header {
+    background: #111827;
+    color: white;
+    padding: 30px 0;
+}
 
-    if (!response.ok) {
-        throw new Error(
-            `Unable to load ${filename} (${response.status})`
-        );
-    }
+header h1 {
+    margin: 0 0 8px;
+    font-size: 30px;
+}
 
-    return await response.json();
+header p {
+    margin: 0;
+    color: #d1d5db;
 }
 
 
-/*
- * Extract k6 metrics
- */
-function extractMetrics(report) {
+/* ================================
+   Demo Notice
+================================ */
 
-    const metrics = report.metrics || {};
+.demo-notice {
+    margin-top: 25px;
+    padding: 15px 18px;
+    background: #1f2937;
+    border-left: 4px solid #f59e0b;
+    border-radius: 6px;
+}
 
-    const duration =
-        metrics.http_req_duration || {};
+.demo-notice strong {
+    color: #fbbf24;
+}
 
-    const requests =
-        metrics.http_reqs || {};
-
-    const failed =
-        metrics.http_req_failed || {};
-
-    const vus =
-        metrics.vus || {};
-
-    return {
-
-        vus:
-            Number(vus.value ?? vus.max ?? 0),
-
-        requests:
-            Number(requests.count ?? 0),
-
-        requestRate:
-            Number(requests.rate ?? 0),
-
-        average:
-            Number(duration.avg ?? 0),
-
-        median:
-            Number(duration.med ?? 0),
-
-        p90:
-            Number(duration["p(90)"] ?? 0),
-
-        p95:
-            Number(duration["p(95)"] ?? 0),
-
-        max:
-            Number(duration.max ?? 0),
-
-        failureRate:
-            Number(failed.value ?? 0)
-
-    };
+.demo-notice p {
+    margin-top: 8px;
+    font-size: 14px;
+    line-height: 1.5;
 }
 
 
-/*
- * Extract date/time from filename
- *
- * Example:
- *
- * k6_url-summary-run-19-20260813-224627-142295608.json
- *
- */
-function getReportDate(filename) {
+/* ================================
+   Main
+================================ */
 
-    const match =
-        filename.match(
-            /(\d{8})-(\d{6})/
-        );
-
-    if (!match) {
-
-        /*
-         * Generic files such as:
-         *
-         * test.json
-         * k6_url-summary.json
-         *
-         */
-
-        return "Unknown";
-    }
-
-
-    const date =
-        match[1];
-
-    const time =
-        match[2];
-
-
-    const year =
-        date.substring(0, 4);
-
-    const month =
-        date.substring(4, 6);
-
-    const day =
-        date.substring(6, 8);
-
-
-    const hour =
-        time.substring(0, 2);
-
-    const minute =
-        time.substring(2, 4);
-
-    const second =
-        time.substring(4, 6);
-
-
-    return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+main {
+    padding: 30px 0 50px;
 }
 
 
-/*
- * Extract run number
- *
- * Example:
- *
- * k6_url-summary-run-19-20260813...
- *
- * returns:
- *
- * 19
- */
-function getRunNumber(filename) {
+/* ================================
+   Summary Cards
+================================ */
 
-    const match =
-        filename.match(
-            /run-(\d+)/
-        );
+.summary {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 15px;
+    margin-bottom: 30px;
+}
 
-    if (!match) {
-        return "-";
-    }
+.summary-card {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
 
-    return match[1];
+.summary-card span {
+    display: block;
+    color: #6b7280;
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+.summary-card strong {
+    font-size: 22px;
+    color: #111827;
 }
 
 
-/*
- * Determine dashboard status
- *
- * DEMO thresholds
- */
-function getStatus(failureRate) {
+/* ================================
+   Reports Section
+================================ */
 
-    if (failureRate > 5) {
-        return "fail";
-    }
+.reports-section {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+}
 
-    if (failureRate > 1) {
-        return "warn";
-    }
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #e5e7eb;
+}
 
-    return "pass";
+.section-header h2 {
+    margin: 0 0 5px;
+    font-size: 21px;
+}
+
+.section-header p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+#runCount {
+    background: #eef2ff;
+    color: #4338ca;
+    padding: 7px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: bold;
 }
 
 
-const STATUS_LABEL = {
+/* ================================
+   Table
+================================ */
 
-    pass: "PASS",
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+}
 
-    warn: "DEGRADED",
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1100px;
+}
 
-    fail: "FAIL"
+thead {
+    background: #f9fafb;
+}
 
-};
+th {
+    padding: 13px 12px;
+    text-align: left;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #6b7280;
+    border-bottom: 1px solid #e5e7eb;
+    white-space: nowrap;
+}
 
+td {
+    padding: 15px 12px;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 14px;
+    white-space: nowrap;
+}
 
-/*
- * Format milliseconds
- */
-function formatMilliseconds(value) {
+tbody tr:hover {
+    background: #f9fafb;
+}
 
-    if (!Number.isFinite(value)) {
-        return "-";
-    }
-
-    return `${value.toFixed(2)} ms`;
+tbody tr:last-child td {
+    border-bottom: none;
 }
 
 
-/*
- * Format percentage
- */
-function formatPercentage(value) {
+/* ================================
+   Status
+================================ */
 
-    if (!Number.isFinite(value)) {
-        return "0.00%";
-    }
+.status-badge {
+    display: inline-block;
+    padding: 5px 9px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: bold;
+}
 
-    return `${value.toFixed(2)}%`;
+.status-badge.pass {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-badge.warn {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-badge.fail {
+    background: #fee2e2;
+    color: #991b1b;
 }
 
 
-/*
- * Render one table row
- */
-function renderRun(filename, report) {
+/* ================================
+   Links
+================================ */
 
-    const metrics =
-        extractMetrics(report);
+.report-link {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 600;
+}
 
-
-    const date =
-        getReportDate(filename);
-
-
-    const runNumber =
-        getRunNumber(filename);
-
-
-    const errorRate =
-        metrics.failureRate * 100;
-
-
-    const status =
-        getStatus(errorRate);
-
-
-    const reportUrl =
-        `${REPORT_BASE_URL}${encodeURIComponent(filename)}`;
-
-
-    return `
-
-        <tr>
-
-            <td>
-                <strong>#${runNumber}</strong>
-            </td>
-
-
-            <td>
-                ${date}
-            </td>
-
-
-            <td>
-                ${metrics.vus}
-            </td>
-
-
-            <td>
-                ${Number(
-                    metrics.requests
-                ).toLocaleString()}
-            </td>
-
-
-            <td>
-                ${metrics.requestRate.toFixed(2)}
-            </td>
-
-
-            <td>
-                ${formatMilliseconds(
-                    metrics.average
-                )}
-            </td>
-
-
-            <td>
-                <strong>
-                    ${formatMilliseconds(
-                        metrics.p95
-                    )}
-                </strong>
-            </td>
-
-
-            <td>
-                ${formatMilliseconds(
-                    metrics.max
-                )}
-            </td>
-
-
-            <td>
-                ${formatPercentage(
-                    errorRate
-                )}
-            </td>
-
-
-            <td>
-
-                <span class="status-badge ${status}">
-                    ${STATUS_LABEL[status]}
-                </span>
-
-            </td>
-
-
-            <td>
-
-                <a
-                    href="${reportUrl}"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="report-link"
-                >
-                    View JSON
-                </a>
-
-            </td>
-
-        </tr>
-
-    `;
+.report-link:hover {
+    text-decoration: underline;
 }
 
 
-/*
- * Show dashboard error
- */
-function showError(message) {
+/* ================================
+   Loading / Empty
+================================ */
 
-    const runsEl =
-        document.getElementById("runs");
+.loading,
+.empty {
+    text-align: center;
+    padding: 35px !important;
+    color: #6b7280;
+}
 
-
-    const statusEl =
-        document.getElementById("status");
-
-
-    const errorEl =
-        document.getElementById("errorMessage");
-
-
-    runsEl.innerHTML = `
-
-        <tr>
-
-            <td
-                colspan="11"
-                class="empty"
-            >
-
-                ❌ ${message}
-
-            </td>
-
-        </tr>
-
-    `;
-
-
-    statusEl.textContent =
-        "Unable to load reports";
-
-
-    errorEl.hidden = false;
-
-
-    errorEl.textContent =
-        message;
+.error-message {
+    margin-top: 20px;
+    padding: 15px;
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+    border-radius: 6px;
 }
 
 
-/*
- * Initialize dashboard
- */
-async function init() {
+/* ================================
+   Footer
+================================ */
 
-    const runsEl =
-        document.getElementById("runs");
+footer {
+    background: #111827;
+    color: #9ca3af;
+    padding: 25px 0;
+    font-size: 13px;
+}
 
+footer p {
+    margin: 5px 0;
+}
 
-    const runCount =
-        document.getElementById("runCount");
 
+/* ================================
+   Responsive
+================================ */
 
-    const statusEl =
-        document.getElementById("status");
+@media (max-width: 1000px) {
 
-
-    try {
-
-        /*
-         * Initial loading message
-         */
-        runsEl.innerHTML = `
-
-            <tr>
-
-                <td
-                    colspan="11"
-                    class="loading"
-                >
-                    Loading k6 reports...
-                </td>
-
-            </tr>
-
-        `;
-
-
-        /*
-         * Load index.json
-         */
-        const index =
-            await loadReportIndex();
-
-
-        console.log(
-            "k6 report index:",
-            index
-        );
-
-
-        /*
-         * Validate index
-         */
-        if (
-            !index.reports ||
-            !Array.isArray(index.reports)
-        ) {
-
-            throw new Error(
-                "reports/index.json does not contain a valid reports array."
-            );
-
-        }
-
-
-        if (
-            index.reports.length === 0
-        ) {
-
-            runsEl.innerHTML = `
-
-                <tr>
-
-                    <td
-                        colspan="11"
-                        class="empty"
-                    >
-                        No reports published yet.
-                    </td>
-
-                </tr>
-
-            `;
-
-            statusEl.textContent =
-                "No reports available";
-
-            return;
-        }
-
-
-        /*
-         * Load all reports
-         */
-        const reports = [];
-
-
-        for (
-            const filename
-            of index.reports
-        ) {
-
-            try {
-
-                console.log(
-                    `Loading report: ${filename}`
-                );
-
-
-                const report =
-                    await loadReport(filename);
-
-
-                reports.push({
-
-                    filename,
-
-                    report
-
-                });
-
-
-            } catch (error) {
-
-                console.error(
-                    `Unable to load ${filename}`,
-                    error
-                );
-
-            }
-
-        }
-
-
-        /*
-         * Check whether any reports loaded
-         */
-        if (
-            reports.length === 0
-        ) {
-
-            throw new Error(
-                "Reports were found in index.json, but none of the report files could be loaded."
-            );
-
-        }
-
-
-        /*
-         * Sort reports
-         *
-         * Timestamped reports first.
-         * Newest timestamp first.
-         */
-        reports.sort(
-            (a, b) => {
-
-                const dateA =
-                    getReportDate(
-                        a.filename
-                    );
-
-                const dateB =
-                    getReportDate(
-                        b.filename
-                    );
-
-
-                if (
-                    dateA === "Unknown"
-                ) {
-                    return 1;
-                }
-
-
-                if (
-                    dateB === "Unknown"
-                ) {
-                    return -1;
-                }
-
-
-                return dateB.localeCompare(
-                    dateA
-                );
-
-            }
-        );
-
-
-        /*
-         * Display report count
-         */
-        runCount.textContent =
-            `${reports.length} report${
-                reports.length === 1
-                    ? ""
-                    : "s"
-            }`;
-
-
-        document.getElementById(
-            "statTotal"
-        ).textContent =
-            reports.length;
-
-
-        /*
-         * Render table
-         */
-        runsEl.innerHTML =
-            reports
-                .map(
-                    item =>
-                        renderRun(
-                            item.filename,
-                            item.report
-                        )
-                )
-                .join("");
-
-
-        /*
-         * Latest report
-         */
-        const latest =
-            reports[0];
-
-
-        const latestMetrics =
-            extractMetrics(
-                latest.report
-            );
-
-
-        /*
-         * Latest date
-         */
-        document.getElementById(
-            "statDate"
-        ).textContent =
-            getReportDate(
-                latest.filename
-            );
-
-
-        /*
-         * Latest P95
-         */
-        document.getElementById(
-            "statP95"
-        ).textContent =
-            formatMilliseconds(
-                latestMetrics.p95
-            );
-
-
-        /*
-         * Latest error rate
-         */
-        const latestErrorRate =
-            latestMetrics.failureRate * 100;
-
-
-        document.getElementById(
-            "statErr"
-        ).textContent =
-            formatPercentage(
-                latestErrorRate
-            );
-
-
-        /*
-         * Latest status
-         */
-        const latestStatus =
-            getStatus(
-                latestErrorRate
-            );
-
-
-        const statusElement =
-            document.getElementById(
-                "statStatus"
-            );
-
-
-        statusElement.textContent =
-            STATUS_LABEL[
-                latestStatus
-            ];
-
-
-        statusElement.className =
-            `value ${latestStatus}`;
-
-
-        /*
-         * Status message
-         */
-        statusEl.textContent =
-            `Successfully loaded ${reports.length} report${
-                reports.length === 1
-                    ? ""
-                    : "s"
-            }.`;
-        
-
-        console.log(
-            "k6 dashboard loaded successfully."
-        );
-
-    } catch (error) {
-
-        console.error(
-            "Dashboard error:",
-            error
-        );
-
-
-        showError(
-            error.message
-        );
-
+    .summary {
+        grid-template-columns: repeat(2, 1fr);
     }
 
 }
 
 
-/*
- * Start dashboard
- */
-document.addEventListener(
-    "DOMContentLoaded",
-    init
-);
+@media (max-width: 600px) {
+
+    header h1 {
+        font-size: 24px;
+    }
+
+    .summary {
+        grid-template-columns: 1fr;
+    }
+
+    .section-header {
+        align-items: flex-start;
+        gap: 15px;
+        flex-direction: column;
+    }
+
+}
