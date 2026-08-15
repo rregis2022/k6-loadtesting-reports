@@ -14,7 +14,9 @@ async function loadReportIndex() {
     );
 
     if (!response.ok) {
-        throw new Error("Unable to load reports/index.json");
+        throw new Error(
+            `Unable to load reports/index.json (${response.status})`
+        );
     }
 
     return await response.json();
@@ -34,7 +36,9 @@ async function loadReport(filename) {
     );
 
     if (!response.ok) {
-        throw new Error(`Unable to load report: ${filename}`);
+        throw new Error(
+            `Unable to load ${filename} (${response.status})`
+        );
     }
 
     return await response.json();
@@ -62,55 +66,127 @@ function extractMetrics(report) {
 
     return {
 
-        vus: vus.value ?? 0,
+        vus:
+            Number(vus.value ?? vus.max ?? 0),
 
-        requests: requests.count ?? 0,
+        requests:
+            Number(requests.count ?? 0),
 
-        requestRate: requests.rate ?? 0,
+        requestRate:
+            Number(requests.rate ?? 0),
 
-        average: duration.avg ?? 0,
+        average:
+            Number(duration.avg ?? 0),
 
-        median: duration.med ?? 0,
+        median:
+            Number(duration.med ?? 0),
 
-        p90: duration["p(90)"] ?? 0,
+        p90:
+            Number(duration["p(90)"] ?? 0),
 
-        p95: duration["p(95)"] ?? 0,
+        p95:
+            Number(duration["p(95)"] ?? 0),
 
-        max: duration.max ?? 0,
+        max:
+            Number(duration.max ?? 0),
 
-        failureRate: failed.value ?? 0
+        failureRate:
+            Number(failed.value ?? 0)
+
     };
 }
 
 
 /*
- * Extract date from k6 report filename
+ * Extract date/time from filename
  *
  * Example:
- * k6_url-summary-run-18-20260813-134232-473398897.json
+ *
+ * k6_url-summary-run-19-20260813-224627-142295608.json
+ *
  */
 function getReportDate(filename) {
 
     const match =
-        filename.match(/(\d{8})-(\d{6})/);
+        filename.match(
+            /(\d{8})-(\d{6})/
+        );
 
     if (!match) {
-        return "Unknown date";
+
+        /*
+         * Generic files such as:
+         *
+         * test.json
+         * k6_url-summary.json
+         *
+         */
+
+        return "Unknown";
     }
+
 
     const date =
         match[1];
 
-    return `${date.substring(0, 4)}-${date.substring(4, 6)}-${date.substring(6, 8)}`;
+    const time =
+        match[2];
+
+
+    const year =
+        date.substring(0, 4);
+
+    const month =
+        date.substring(4, 6);
+
+    const day =
+        date.substring(6, 8);
+
+
+    const hour =
+        time.substring(0, 2);
+
+    const minute =
+        time.substring(2, 4);
+
+    const second =
+        time.substring(4, 6);
+
+
+    return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+}
+
+
+/*
+ * Extract run number
+ *
+ * Example:
+ *
+ * k6_url-summary-run-19-20260813...
+ *
+ * returns:
+ *
+ * 19
+ */
+function getRunNumber(filename) {
+
+    const match =
+        filename.match(
+            /run-(\d+)/
+        );
+
+    if (!match) {
+        return "-";
+    }
+
+    return match[1];
 }
 
 
 /*
  * Determine dashboard status
  *
- * These are currently DEMO thresholds.
- * We will later replace these with
- * explicit performance requirements.
+ * DEMO thresholds
  */
 function getStatus(failureRate) {
 
@@ -128,89 +204,203 @@ function getStatus(failureRate) {
 
 const STATUS_LABEL = {
 
-    pass: "Passed",
+    pass: "PASS",
 
-    warn: "Degraded",
+    warn: "DEGRADED",
 
-    fail: "Failed"
+    fail: "FAIL"
 
 };
 
 
 /*
- * Render one historical run
+ * Format milliseconds
+ */
+function formatMilliseconds(value) {
+
+    if (!Number.isFinite(value)) {
+        return "-";
+    }
+
+    return `${value.toFixed(2)} ms`;
+}
+
+
+/*
+ * Format percentage
+ */
+function formatPercentage(value) {
+
+    if (!Number.isFinite(value)) {
+        return "0.00%";
+    }
+
+    return `${value.toFixed(2)}%`;
+}
+
+
+/*
+ * Render one table row
  */
 function renderRun(filename, report) {
 
     const metrics =
         extractMetrics(report);
 
+
     const date =
         getReportDate(filename);
 
+
+    const runNumber =
+        getRunNumber(filename);
+
+
     const errorRate =
         metrics.failureRate * 100;
+
 
     const status =
         getStatus(errorRate);
 
 
+    const reportUrl =
+        `${REPORT_BASE_URL}${encodeURIComponent(filename)}`;
+
+
     return `
 
-        <a
-            class="run ${status}"
-            href="${REPORT_BASE_URL}${encodeURIComponent(filename)}"
-            target="_blank"
-            rel="noopener noreferrer"
-        >
+        <tr>
 
-            <div class="run-meta">
+            <td>
+                <strong>#${runNumber}</strong>
+            </td>
 
-                <span class="build">
-                    ${filename}
-                </span>
 
+            <td>
                 ${date}
+            </td>
 
-            </div>
+
+            <td>
+                ${metrics.vus}
+            </td>
 
 
-            <div class="run-body">
+            <td>
+                ${Number(
+                    metrics.requests
+                ).toLocaleString()}
+            </td>
 
-                <span class="env">
-                    k6
+
+            <td>
+                ${metrics.requestRate.toFixed(2)}
+            </td>
+
+
+            <td>
+                ${formatMilliseconds(
+                    metrics.average
+                )}
+            </td>
+
+
+            <td>
+                <strong>
+                    ${formatMilliseconds(
+                        metrics.p95
+                    )}
+                </strong>
+            </td>
+
+
+            <td>
+                ${formatMilliseconds(
+                    metrics.max
+                )}
+            </td>
+
+
+            <td>
+                ${formatPercentage(
+                    errorRate
+                )}
+            </td>
+
+
+            <td>
+
+                <span class="status-badge ${status}">
+                    ${STATUS_LABEL[status]}
                 </span>
 
-                <div class="metrics">
-
-                    VUs
-                    <b>${metrics.vus}</b>
-
-                    · Requests
-                    <b>${Number(metrics.requests).toLocaleString()}</b>
-
-                    · p95
-                    <b>${metrics.p95.toFixed(2)} ms</b>
-
-                    · errors
-                    <b>${errorRate.toFixed(2)}%</b>
-
-                </div>
-
-            </div>
+            </td>
 
 
-            <span
-                class="status-badge ${status}"
-            >
+            <td>
 
-                ${STATUS_LABEL[status]}
+                <a
+                    href="${reportUrl}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="report-link"
+                >
+                    View JSON
+                </a>
 
-            </span>
+            </td>
 
-        </a>
+        </tr>
 
     `;
+}
+
+
+/*
+ * Show dashboard error
+ */
+function showError(message) {
+
+    const runsEl =
+        document.getElementById("runs");
+
+
+    const statusEl =
+        document.getElementById("status");
+
+
+    const errorEl =
+        document.getElementById("errorMessage");
+
+
+    runsEl.innerHTML = `
+
+        <tr>
+
+            <td
+                colspan="11"
+                class="empty"
+            >
+
+                ❌ ${message}
+
+            </td>
+
+        </tr>
+
+    `;
+
+
+    statusEl.textContent =
+        "Unable to load reports";
+
+
+    errorEl.hidden = false;
+
+
+    errorEl.textContent =
+        message;
 }
 
 
@@ -222,16 +412,34 @@ async function init() {
     const runsEl =
         document.getElementById("runs");
 
+
     const runCount =
         document.getElementById("runCount");
 
 
+    const statusEl =
+        document.getElementById("status");
+
+
     try {
 
-        runsEl.innerHTML =
-            `<div class="empty">
-                Loading report history...
-            </div>`;
+        /*
+         * Initial loading message
+         */
+        runsEl.innerHTML = `
+
+            <tr>
+
+                <td
+                    colspan="11"
+                    class="loading"
+                >
+                    Loading k6 reports...
+                </td>
+
+            </tr>
+
+        `;
 
 
         /*
@@ -247,15 +455,42 @@ async function init() {
         );
 
 
+        /*
+         * Validate index
+         */
         if (
             !index.reports ||
+            !Array.isArray(index.reports)
+        ) {
+
+            throw new Error(
+                "reports/index.json does not contain a valid reports array."
+            );
+
+        }
+
+
+        if (
             index.reports.length === 0
         ) {
 
-            runsEl.innerHTML =
-                `<div class="empty">
-                    No reports published yet.
-                </div>`;
+            runsEl.innerHTML = `
+
+                <tr>
+
+                    <td
+                        colspan="11"
+                        class="empty"
+                    >
+                        No reports published yet.
+                    </td>
+
+                </tr>
+
+            `;
+
+            statusEl.textContent =
+                "No reports available";
 
             return;
         }
@@ -273,6 +508,11 @@ async function init() {
         ) {
 
             try {
+
+                console.log(
+                    `Loading report: ${filename}`
+                );
+
 
                 const report =
                     await loadReport(filename);
@@ -299,20 +539,64 @@ async function init() {
         }
 
 
-        if (reports.length === 0) {
+        /*
+         * Check whether any reports loaded
+         */
+        if (
+            reports.length === 0
+        ) {
 
-            runsEl.innerHTML =
-                `<div class="empty">
-                    Reports were found in index.json,
-                    but none could be loaded.
-                </div>`;
+            throw new Error(
+                "Reports were found in index.json, but none of the report files could be loaded."
+            );
 
-            return;
         }
 
 
         /*
-         * Display number of reports
+         * Sort reports
+         *
+         * Timestamped reports first.
+         * Newest timestamp first.
+         */
+        reports.sort(
+            (a, b) => {
+
+                const dateA =
+                    getReportDate(
+                        a.filename
+                    );
+
+                const dateB =
+                    getReportDate(
+                        b.filename
+                    );
+
+
+                if (
+                    dateA === "Unknown"
+                ) {
+                    return 1;
+                }
+
+
+                if (
+                    dateB === "Unknown"
+                ) {
+                    return -1;
+                }
+
+
+                return dateB.localeCompare(
+                    dateA
+                );
+
+            }
+        );
+
+
+        /*
+         * Display report count
          */
         runCount.textContent =
             `${reports.length} report${
@@ -322,16 +606,23 @@ async function init() {
             }`;
 
 
+        document.getElementById(
+            "statTotal"
+        ).textContent =
+            reports.length;
+
+
         /*
-         * Display historical runs
+         * Render table
          */
         runsEl.innerHTML =
             reports
-                .map(item =>
-                    renderRun(
-                        item.filename,
-                        item.report
-                    )
+                .map(
+                    item =>
+                        renderRun(
+                            item.filename,
+                            item.report
+                        )
                 )
                 .join("");
 
@@ -350,7 +641,7 @@ async function init() {
 
 
         /*
-         * Last run date
+         * Latest date
          */
         document.getElementById(
             "statDate"
@@ -366,7 +657,9 @@ async function init() {
         document.getElementById(
             "statP95"
         ).textContent =
-            `${latestMetrics.p95.toFixed(2)} ms`;
+            formatMilliseconds(
+                latestMetrics.p95
+            );
 
 
         /*
@@ -379,13 +672,15 @@ async function init() {
         document.getElementById(
             "statErr"
         ).textContent =
-            `${latestErrorRate.toFixed(2)}%`;
+            formatPercentage(
+                latestErrorRate
+            );
 
 
         /*
          * Latest status
          */
-        const status =
+        const latestStatus =
             getStatus(
                 latestErrorRate
             );
@@ -398,35 +693,50 @@ async function init() {
 
 
         statusElement.textContent =
-            STATUS_LABEL[status];
+            STATUS_LABEL[
+                latestStatus
+            ];
 
 
         statusElement.className =
-            `value ${status}`;
+            `value ${latestStatus}`;
 
+
+        /*
+         * Status message
+         */
+        statusEl.textContent =
+            `Successfully loaded ${reports.length} report${
+                reports.length === 1
+                    ? ""
+                    : "s"
+            }.`;
+        
 
         console.log(
             "k6 dashboard loaded successfully."
         );
 
-
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "Dashboard error:",
+            error
+        );
 
 
-        runsEl.innerHTML =
-            `<div class="empty">
-                Couldn't load report history.
-                <br><br>
-                ${error.message}
-            </div>`;
+        showError(
+            error.message
+        );
 
     }
 
 }
 
 
+/*
+ * Start dashboard
+ */
 document.addEventListener(
     "DOMContentLoaded",
     init
